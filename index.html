@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Professional Dashboard</title>
+
+<!-- Styles -->
+<style>
+/* --- GLOBAL --- */
+* { box-sizing: border-box; margin:0; padding:0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+body { background: #f4f6f9; color: #333; transition: background 0.3s, color 0.3s; }
+
+/* --- LOGIN --- */
+.login-container {
+    width: 350px; margin: 100px auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+}
+.login-container h2 { text-align: center; margin-bottom: 20px; color: #2a3f54; }
+.login-container input { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 6px; }
+.login-container button { width: 100%; padding: 10px; background: #1976d2; color: #fff; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+.login-container button:hover { background: #115293; }
+
+/* --- DASHBOARD --- */
+.dashboard-wrapper { display: flex; min-height: 100vh; transition: margin-left 0.3s; }
+.sidebar {
+    width: 220px; background: #fff; padding: 20px; border-right: 1px solid #e0e0e0; 
+    display: flex; flex-direction: column; justify-content: space-between;
+    transition: transform 0.3s;
+}
+.sidebar h3 { margin-bottom: 20px; color: #1976d2; }
+.sidebar p {
+    padding: 10px; border-radius: 6px; cursor: pointer; margin-bottom: 8px; transition: 0.2s;
+}
+.sidebar p:hover { background: #1976d2; color: #fff; }
+.logout-btn { padding: 10px; background: #d32f2f; color: #fff; border: none; border-radius: 6px; cursor: pointer; margin-top: 20px; }
+.logout-btn:hover { background: #9a0007; }
+
+.content { flex-grow: 1; padding: 30px; overflow-y: auto; transition: margin-left 0.3s; }
+
+/* --- CARDS --- */
+.card {
+    background: #fff; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 3px 15px rgba(0,0,0,0.05);
+}
+.card h3 { margin-bottom: 15px; color: #1976d2; }
+.card input, .card textarea, .card select {
+    border: 1px solid #ccc; border-radius: 6px; padding: 10px; width: 100%; margin-bottom: 10px;
+}
+.card button {
+    background: #1976d2; color: #fff; border: none; border-radius: 6px; padding: 10px 15px; font-weight: bold; cursor: pointer;
+}
+.card button:hover { background: #115293; }
+
+/* --- FILE CARD --- */
+.file-card {
+    background: #fff; border-radius: 8px; padding: 15px; width: 200px; box-shadow: 0 3px 15px rgba(0,0,0,0.05); margin-bottom: 15px;
+}
+
+/* --- NOTIFICATION --- */
+#notification {
+    position: fixed; top: 10px; right: 10px; background: #1976d2; color: #fff;
+    padding: 10px 15px; border-radius: 6px; box-shadow: 0 3px 10px rgba(0,0,0,0.2); display: none;
+    z-index: 1000;
+}
+
+/* --- SIDEBAR TOGGLE --- */
+#menu-toggle {
+    display: none; position: fixed; top: 15px; left: 15px; background: #1976d2; color: #fff; border: none; padding: 10px; border-radius: 6px; cursor: pointer; z-index: 1001;
+}
+#menu-toggle:hover { background: #115293; }
+
+/* --- RESPONSIVE --- */
+@media (max-width: 768px) {
+    .dashboard-wrapper { flex-direction: column; }
+    .sidebar { position: fixed; top: 0; left: 0; height: 100%; transform: translateX(-100%); z-index: 1000; }
+    .sidebar.active { transform: translateX(0); }
+    .content { padding: 20px; }
+    #menu-toggle { display: block; }
+}
+
+#signature {
+    position: fixed;     /* Stays at the bottom-right even when scrolling */
+    bottom: 10px;        /* Distance from bottom */
+    right: 10px;         /* Distance from right */
+    font-size: 14px;     /* Adjust size */
+    color: #1976d2;      /* Your brand color, change if needed */
+    font-weight: bold;   /* Optional: make it stand out */
+    z-index: 1000;       /* Keep it on top */
+}
+#signature {
+    opacity: 0.7;
+}
+
+#signature {
+    cursor: default;
+}
+
+</style>
+
+<!-- Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+<!-- MENU TOGGLE FOR MOBILE -->
+<button id="menu-toggle" onclick="toggleSidebar()">☰ Menu</button>
+
+<!-- NOTIFICATION -->
+<div id="notification"></div>
+
+<!-- LOGIN PAGE -->
+<div class="login-container" id="login-page">
+    <h2>Login</h2>
+    <input id="username" placeholder="Username">
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="login()">Login</button>
+    <p id="message" style="color:red;margin-top:10px;"></p>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" style="display:none;">
+    <div class="dashboard-wrapper">
+
+        <div class="sidebar" id="sidebar">
+            <div>
+                <h3>Menu</h3>
+                <p onclick="loadSection('home')">🏠 Home</p>
+                <p onclick="loadSection('analytics')">📊 Analytics</p>
+                <p onclick="loadSection('files')">📁 Files</p>
+                <p onclick="loadSection('report')">📝 Monthly Report</p>
+                <p onclick="loadSection('settings')">⚙️ Settings</p>
+            </div>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+
+        <div class="content" id="content-area">
+            <h1>Welcome to Dashboard</h1>
+            <p>Select a menu from the left.</p>
+        </div>
+
+    </div>
+</div>
+
+<script>
+/* --- UTILITY --- */
+function showNotification(msg){
+    const notif = document.getElementById("notification");
+    notif.innerText = msg;
+    notif.style.display = "block";
+    setTimeout(()=>notif.style.display="none",3000);
+}
+
+function toggleSidebar(){
+    document.getElementById("sidebar").classList.toggle("active");
+}
+
+/* --- LOGIN --- */
+function login() {
+    const u = document.getElementById("username").value;
+    const p = document.getElementById("password").value;
+    let storedPass = localStorage.getItem("adminPass") || "Apple@1234";
+
+    if(u === "admin" && p === storedPass){
+        document.getElementById("login-page").style.display="none";
+        document.getElementById("dashboard").style.display="flex";
+    } else {
+        document.getElementById("message").innerText="Invalid login!";
+    }
+}
+
+function logout() {
+    document.getElementById("login-page").style.display="block";
+    document.getElementById("dashboard").style.display="none";
+    document.getElementById("username").value="";
+    document.getElementById("password").value="";
+    document.getElementById("message").innerText="";
+}
+
+/* --- THEME --- */
+window.onload = function(){
+    const theme = localStorage.getItem("theme") || "light";
+    changeTheme(theme);
+
+    // Show reminders for today
+    const reminders = JSON.parse(localStorage.getItem("reminders")||"[]");
+    const today = new Date().toISOString().split("T")[0];
+    reminders.forEach(r => { if(r.date===today) showNotification(`Reminder: ${r.text}`); });
+};
+
+/* --- NAVIGATION --- */
+function loadSection(sec){
+    const area=document.getElementById("content-area");
+    if(window.innerWidth <= 768) toggleSidebar(); // auto close sidebar on mobile
+
+    if(sec==="home"){ 
+        area.innerHTML=`<h1>🏠 Home</h1>${loadHomeInsights()}`; 
+    }
+
+    if(sec==="report"){
+        area.innerHTML=`
+        <h1>📝 Monthly Report</h1>
+        <input id="report-search" placeholder="Search reports by month..." onkeyup="searchReports()" style="margin-bottom:10px;padding:8px;width:100%;border-radius:6px;border:1px solid #ccc;">
+        <div style='margin-bottom:10px;'>
+            <button onclick="sortReports('month')">Sort by Month</button>
+            <button onclick="sortReports('revenue')">Sort by Revenue</button>
+        </div>
+		<div class="card">
+    <h3>Import Reports</h3>
+    <input type="file" id="import-reports-file" accept=".csv">
+    <button onclick="importReports()">📂 Import</button>
+</div>
+
+       <div class="card">
+    <h3>Add New Report</h3>
+
+    <input id="report-month" placeholder="Month e.g. December 2025">
+
+    <input id="report-revenue" type="number"
+           placeholder="Current Month Installment">
+
+    <input id="report-users" type="number"
+           placeholder="Previous Month Total">
+
+    <!-- NEW TEXT FIELD -->
+    <textarea id="report-installment-total" rows="2"
+    placeholder="Installment Total (Example:
+42 - Installment Total = 82394 + 3600 (monthly installment) + 75 monthly interest)">
+    </textarea>
+
+    <textarea id="report-churn" rows="5"
+    placeholder="Remaining Amount List
+John 2000
+Amit 4000
+Riya 6000"></textarea>
+
+    <textarea id="report-highlights" rows="3"
+    placeholder="Notes..."></textarea>
+
+    <button onclick="addReport()">➕ Add Report</button>
+</div>
+
+
+        <div id="report-list"></div>
+        `;
+        setTimeout(loadReports,50);
+    }
+
+    if(sec==="files"){ loadFiles(); }
+
+    if(sec==="analytics"){ loadAnalytics(area); }
+
+    if(sec==="settings"){
+        area.innerHTML=`
+        <h1>⚙️ Settings</h1>
+        <div class="card">
+            <h3>Theme</h3>
+            <select id="theme-select">
+                <option value="light">🌞 Light</option>
+                <option value="dark">🌙 Dark</option>
+            </select>
+        </div>
+        <div class="card">
+            <h3>Notifications</h3>
+            <label><input type="checkbox" id="notify-toggle"> Enable Notifications</label>
+        </div>
+        <div class="card">
+            <h3>Change Password</h3>
+            <input type="password" id="current-pass" placeholder="Current Password">
+            <input type="password" id="new-pass" placeholder="New Password">
+            <button id="change-pass-btn">Update Password</button>
+        </div>
+        <div class="card">
+            <h3>Data Management</h3>
+            <button id="reset-reports-btn" style="background:#d32f2f;">Reset All Reports</button>
+        </div>
+        <div class="card">
+            <h3>Upload File</h3>
+            <input type="file" id="file-upload">
+            <button onclick="uploadFile()">Upload</button>
+        </div>
+        <div class="card">
+            <h3>⏰ Reminders</h3>
+            <input type="text" id="reminder-text" placeholder="Enter reminder">
+            <input type="date" id="reminder-date">
+            <button onclick="addReminder()">Add Reminder</button>
+            <ul id="reminder-list" style="margin-top:10px;"></ul>
+        </div>
+        `;
+        document.getElementById("theme-select").addEventListener("change", function(){ changeTheme(this.value); });
+        document.getElementById("notify-toggle").addEventListener("change", function(){ showNotification(this.checked ? "Notifications Enabled" : "Notifications Disabled"); });
+        document.getElementById("change-pass-btn").addEventListener("click", changePassword);
+        document.getElementById("reset-reports-btn").addEventListener("click", resetReports);
+        loadReminders();
+    }
+}
+
+/* --- INSIGHTS --- */
+function loadHomeInsights() {
+    const reports = JSON.parse(localStorage.getItem("reports") || "[]");
+    if (reports.length === 0) {
+        return `<div class="card"><p>No reports yet.</p></div>`;
+    }
+
+    // Calculate totals safely
+    let totalRevenue = 0, totalUsers = 0, totalChurn = 0;
+    reports.forEach(r => {
+        const revenue = parseFloat(r.revenue) || 0;
+        const users = parseFloat(r.users) || 0;
+        const churn = r.churn 
+            ? r.churn.split("\n").reduce((sum, line) => {
+                const amt = parseFloat((line.split(" ")[1] || 0));
+                return sum + (isNaN(amt) ? 0 : amt);
+            }, 0)
+            : 0;
+
+        totalRevenue += revenue;
+        totalUsers += users;
+        totalChurn += churn;
+    });
+
+    const predictedRevenue = totalRevenue / reports.length * 1.05;
+
+    // Show last 5 reports safely
+    const recentReports = reports.slice(-5).reverse().map(r => {
+    const revenue = parseFloat(r.revenue) || 0;
+    const users = parseFloat(r.users) || 0;
+
+    // Safe churn calculation
+    let churnValue = 0;
+    if (r.churn) {
+        r.churn.split("\n").forEach(line => {
+            const amount = parseFloat((line.split(" ")[1] || 0));
+            if (!isNaN(amount)) churnValue += amount;
+        });
+    }
+
+    return `<p><b>${r.month || 'Unknown Month'}</b> - ₹${revenue}, Users: ${users}, Remaining: ₹${churnValue}</p>`;
+}).join('');
+
+
+    return `
+    <div class="card">
+        <h3>📈 Insights</h3>
+        <p><b>Total Revenue:</b> ₹${totalRevenue}</p>
+        <p><b>Total Users:</b> ${totalUsers}</p>
+        <p><b>Total Remaining Amount:</b> ₹${totalChurn}</p>
+        <p><b>Predicted Next Month Revenue:</b> ₹${predictedRevenue.toFixed(2)}</p>
+		
+    </div>
+    <div class="card">
+        <h3>📝 Recent Reports</h3>
+        ${recentReports}
+    </div>`;
+}
+
+
+/* --- REPORT FUNCTIONS --- */
+function addReport(){
+    const month = document.getElementById("report-month").value.trim();
+    const revenue = document.getElementById("report-revenue").value.trim();
+    const users = document.getElementById("report-users").value.trim();
+    const installmentTotal =
+        document.getElementById("report-installment-total").value.trim();
+    const churn = document.getElementById("report-churn").value.trim();
+    const notes = document.getElementById("report-highlights").value.trim();
+
+    if(!month || !revenue || !users || !installmentTotal || !churn || !notes){
+        alert("Fill all fields!");
+        return;
+    }
+
+    const reports = JSON.parse(localStorage.getItem("reports") || "[]");
+
+    reports.push({
+        month,
+        revenue,
+        users,
+        installmentTotal,
+        churn,
+        notes
+    });
+
+    localStorage.setItem("reports", JSON.stringify(reports));
+    loadReports();
+    showNotification("Report added successfully!");
+}
+
+
+function calculateInstallmentTotal(){
+    const revenue = parseFloat(document.getElementById("report-revenue").value || 0);
+    const churnText = document.getElementById("report-churn").value;
+
+    let remainingTotal = 0;
+
+    churnText.split("\n").forEach(line => {
+        const parts = line.trim().split(" ");
+        const amount = parseFloat(parts[1] || 0);
+        remainingTotal += amount;
+    });
+
+    const installmentTotal = revenue + remainingTotal;
+    document.getElementById("report-installment-total").value = installmentTotal;
+}
+
+function importReports() {
+    const fileInput = document.getElementById("import-reports-file");
+    const file = fileInput.files[0];
+    if (!file) { alert("Please select a CSV file."); return; }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const text = e.target.result;
+        const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+        if (lines.length < 2) { alert("CSV is empty!"); return; }
+
+        const reports = JSON.parse(localStorage.getItem("reports") || "[]");
+
+        lines.slice(1).forEach(line => {
+            // Split CSV respecting quotes
+            const cols = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+            if (!cols || cols.length < 6) return;
+
+            const report = {
+                month: cols[0].replace(/"/g, '').trim(),
+                revenue: parseFloat(cols[1].replace(/"/g, '').trim()) || 0,
+                users: parseFloat(cols[2].replace(/"/g, '').trim()) || 0,
+                churn: cols[3].replace(/"/g, '').replace(/;/g, '\n').trim(),
+                installmentTotal: cols[4].replace(/"/g, '').replace(/;/g, '\n').trim(),
+                notes: cols[5].replace(/"/g, '').trim()
+            };
+
+            reports.push(report);
+        });
+
+        localStorage.setItem("reports", JSON.stringify(reports));
+        showNotification("Reports imported successfully!");
+        loadReports(); // Refresh UI
+    };
+
+    reader.onerror = function() { alert("Failed to read file!"); };
+    reader.readAsText(file);
+}
+
+
+function loadReports(){
+    const container=document.getElementById("report-list");
+    const data=JSON.parse(localStorage.getItem("reports")||"[]");
+    if(!container) return;
+    if(data.length===0){ container.innerHTML="<p>No reports yet.</p>"; return; }
+    container.innerHTML="";
+    data.forEach((r,i)=>{
+        container.innerHTML+=`
+        <div class="card" id="report-${i}">
+            <div id="display-${i}">
+                <p><b>Month:</b> ${r.month}</p>
+                <p><b>Current Month Installment:</b> ₹${r.revenue}</p>
+                <p><b>Previous Month Total:</b> ₹${r.users}</p>
+                <p><b>Remaining Amount:</b><br>${r.churn.replace(/\n/g,"<br>")}</p>
+				<p><b>Installment Total:</b><br>
+${(r.installmentTotal || "").replace(/\n/g,"<br>")}
+</p>
+
+
+                <p><b>Notes:</b> ${r.notes}</p>
+                <button onclick="editReport(${i})">✏️ Edit</button>
+				
+<button onclick="deleteReport(${i})" style="background:#d32f2f;">🗑 Delete</button>
+<button onclick="duplicateReport(${i})" style="background:#4caf50;">📄 Duplicate</button>
+
+            </div>
+        </div>`;
+    });
+}
+
+function editReport(index){
+    const data = JSON.parse(localStorage.getItem("reports")||"[]");
+    const r = data[index];
+    const container = document.getElementById(`report-${index}`);
+    container.innerHTML=`
+        <div class="card">
+            <input id="edit-month-${index}" value="${r.month}">
+            <input id="edit-revenue-${index}" type="number" value="${r.revenue}">
+            <input id="edit-users-${index}" type="number" value="${r.users}">
+            <textarea id="edit-churn-${index}" rows="4">${r.churn}</textarea>
+            <textarea id="edit-notes-${index}" rows="3">${r.notes}</textarea>
+            <button onclick="saveReport(${index})">💾 Save</button>
+            <button onclick="loadReports()">❌ Cancel</button>
+        </div>
+    `;
+}
+
+function saveReport(index){
+    const data = JSON.parse(localStorage.getItem("reports")||"[]");
+    data[index] = {
+        month: document.getElementById(`edit-month-${index}`).value,
+        revenue: document.getElementById(`edit-revenue-${index}`).value,
+        users: document.getElementById(`edit-users-${index}`).value,
+        churn: document.getElementById(`edit-churn-${index}`).value,
+        notes: document.getElementById(`edit-notes-${index}`).value
+    };
+    localStorage.setItem("reports", JSON.stringify(data));
+    showNotification("Report updated successfully!");
+    loadReports();
+}
+function duplicateReport(index) {
+    const reports = JSON.parse(localStorage.getItem("reports") || "[]");
+    const reportToDuplicate = reports[index];
+    if (reportToDuplicate) {
+        reports.push({...reportToDuplicate}); // Copy the report
+        localStorage.setItem("reports", JSON.stringify(reports));
+        showNotification("Report duplicated successfully!");
+        loadReports(); // Refresh the list
+    }
+}
+
+
+function searchReports(){
+    const query = document.getElementById("report-search").value.toLowerCase();
+    const reports = JSON.parse(localStorage.getItem("reports") || "[]");
+    const container = document.getElementById("report-list");
+    container.innerHTML = "";
+    reports.filter(r => r.month.toLowerCase().includes(query)).forEach(r=>{
+        container.innerHTML += `
+            <div class="card">
+                <p><b>Month:</b> ${r.month}</p>
+                <p><b>Current Month Installment:</b> ₹${r.revenue}</p>
+                <p><b>Previous Month Total:</b> ₹${r.users}</p>
+                <p><b>Remaining Amount:</b><br>${r.churn.replace(/\n/g,"<br>")}</p>
+                <p><b>Notes:</b> ${r.notes}</p>
+            </div>
+        `;
+    });
+    if(container.innerHTML === "") container.innerHTML="<p>No matching reports.</p>";
+}
+
+function sortReports(key){
+    const reports = JSON.parse(localStorage.getItem("reports") || "[]");
+    reports.sort((a,b) => key==="month" ? a.month.localeCompare(b.month) : b.revenue - a.revenue);
+    localStorage.setItem("reports", JSON.stringify(reports));
+    loadReports();
+}
+
+/* --- FILES --- */
+function loadFiles(){
+    const area = document.getElementById("content-area");
+    const data = JSON.parse(localStorage.getItem("reports") || "[]");
+
+    let html = `
+    <h1>📁 Files</h1>
+    <button onclick="downloadAllReportsCSV()" style="margin-bottom:15px;">Download All Reports CSV</button>
+    <button onclick="exportReportsPDF()" style="margin-bottom:15px;">Export Reports as PDF</button>
+    `;
+
+    if(data.length === 0){
+        area.innerHTML = html + "<p>No files.</p>";
+        return;
+    }
+
+    html += `<div style="display:flex;gap:15px;flex-wrap:wrap;">`;
+
+    data.forEach((r, i) => {
+        html += `
+        <div class="file-card" id="file-${i}">
+            <p><b>Month:</b> ${r.month}</p>
+            <p><b>Current Installment:</b> ₹${r.revenue}</p>
+            <p><b>Previous Total:</b> ₹${r.users}</p>
+
+            <p><b>Installment Total:</b><br>
+            ${(r.installmentTotal || "").replace(/\n/g,"<br>")}
+            </p>
+
+            <p><b>Remaining Amount:</b><br>
+            ${(r.churn || "").replace(/\n/g,"<br>")}
+            </p>
+
+            <p><b>Notes:</b> ${r.notes}</p>
+
+            <button onclick="downloadCard(${i})">Download</button>
+<button onclick="deleteReport(${i})" style="background:#d32f2f;margin-top:5px;">
+    🗑 Delete
+</button>
+
+        </div>`;
+    });
+
+    html += `</div>`;
+    area.innerHTML = html;
+}
+
+
+function downloadCard(i) {
+    const report = JSON.parse(localStorage.getItem("reports") || "[]")[i];
+    if (!report) return;
+
+    // Create a temporary container
+    const tempDiv = document.createElement("div");
+    tempDiv.style.width = "600px";          // Wider for good appearance
+    tempDiv.style.padding = "30px";
+    tempDiv.style.background = "#fff";
+    tempDiv.style.color = "#333";
+    tempDiv.style.fontFamily = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+    tempDiv.style.borderRadius = "10px";
+    tempDiv.style.boxShadow = "0 5px 20px rgba(0,0,0,0.1)";
+    tempDiv.style.lineHeight = "1.6";
+    tempDiv.style.position = "absolute";     // Offscreen
+    tempDiv.style.left = "-9999px";          // Hide it
+    tempDiv.innerHTML = `
+        <h2 style="color:#1976d2;margin-bottom:20px;">Report: ${report.month}</h2>
+        <p><b>Current Installment:</b> ₹${report.revenue}</p>
+        <p><b>Previous Total:</b> ₹${report.users}</p>
+        <p><b>Installment Total:</b><br>${(report.installmentTotal||"").replace(/\n/g,"<br>")}</p>
+        <p><b>Remaining Amount:</b><br>${(report.churn||"").replace(/\n/g,"<br>")}</p>
+        <p><b>Notes:</b> ${report.notes}</p>
+    `;
+
+    // Append temporarily to body
+    document.body.appendChild(tempDiv);
+
+    html2canvas(tempDiv, { scale: 2 }).then(canvas => {
+        const link = document.createElement("a");
+        link.download = `report_${i+1}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+
+        // Remove temporary div
+        document.body.removeChild(tempDiv);
+    }).catch(err => {
+        console.error("Download error:", err);
+        alert("Failed to download report!");
+        document.body.removeChild(tempDiv);
+    });
+}
+
+
+function deleteReport(index){
+    if(!confirm("Are you sure you want to delete this report?")) return;
+
+    const reports = JSON.parse(localStorage.getItem("reports") || "[]");
+    reports.splice(index, 1);
+    localStorage.setItem("reports", JSON.stringify(reports));
+
+    showNotification("Report deleted successfully!");
+
+    // Refresh both sections safely
+    if(document.getElementById("report-list")) loadReports();
+    if(document.querySelector(".file-card")) loadFiles();
+}
+
+
+
+function downloadAllReportsCSV() {
+    const data = JSON.parse(localStorage.getItem("reports") || "[]");
+    if (data.length === 0) { alert("No reports."); return; }
+
+    let csv = "Month,Revenue,Users,Remaining Amount,Installment Total,Notes\n";
+
+    data.forEach(r => {
+        // Replace line breaks with ; for CSV
+        const churn = (r.churn || "").replace(/\n/g, ';');
+        const installment = (r.installmentTotal || "").replace(/\n/g, ';');
+        const notes = (r.notes || "").replace(/\n/g, ' ');
+
+        csv += `"${r.month}","${r.revenue}","${r.users}","${churn}","${installment}","${notes}"\n`;
+    });
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "all_reports.csv";
+    link.click();
+}
+
+
+function exportReportsPDF() {
+    const reports = JSON.parse(localStorage.getItem("reports") || "[]");
+    if (reports.length === 0) { alert("No reports to export."); return; }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'pt', 'a4'); // portrait, points, A4
+    let y = 50; // initial top margin
+
+    reports.forEach((r, i) => {
+        // Header
+        doc.setFontSize(18);
+        doc.setTextColor("#1976d2");
+        doc.text(`Report: ${r.month}`, 40, y);
+        y += 25;
+
+        // Body
+        doc.setFontSize(12);
+        doc.setTextColor("#000");
+        doc.text(`Current Installment: ₹${r.revenue}`, 40, y); y += 20;
+        doc.text(`Previous Total: ₹${r.users}`, 40, y); y += 20;
+        if (r.installmentTotal) {
+            doc.text("Installment Total:", 40, y); y += 15;
+            r.installmentTotal.split("\n").forEach(line => { doc.text(`- ${line}`, 60, y); y += 15; });
+        }
+        if (r.churn) {
+            doc.text("Remaining Amount:", 40, y); y += 15;
+            r.churn.split("\n").forEach(line => { doc.text(`- ${line}`, 60, y); y += 15; });
+        }
+        if (r.notes) {
+            doc.text("Notes:", 40, y); y += 15;
+            r.notes.split("\n").forEach(line => { doc.text(line, 60, y); y += 15; });
+        }
+
+        // Footer or separation line
+        y += 10;
+        doc.setDrawColor(200);
+        doc.setLineWidth(0.5);
+        doc.line(40, y, 555, y);
+        y += 20;
+
+        // Add new page if bottom reached
+        if (y > 750 && i < reports.length - 1) { 
+            doc.addPage(); 
+            y = 50; 
+        }
+    });
+
+    doc.save("all_reports.pdf");
+}
+
+
+/* --- ANALYTICS --- */
+
+/* --- ANALYTICS --- */
+function loadAnalytics(area){
+    const reports = JSON.parse(localStorage.getItem("reports") || "[]");
+    if(reports.length === 0){
+        area.innerHTML = "<h1>📊 Analytics</h1><p>No report data available.</p>";
+        return;
+    }
+
+    // Prepare data arrays
+    const months = reports.map(r => r.month);
+    const revenueData = reports.map(r => parseFloat(r.revenue));
+    const usersData = reports.map(r => parseFloat(r.users));
+    const remainingData = reports.map(r => {
+        if(!r.churn) return 0;
+        return r.churn.split("\n").reduce((sum, line) => {
+            const val = parseFloat(line.split(" ")[1]||0);
+            return sum + val;
+        }, 0);
+    });
+
+    // Calculate aggregates
+    const totalRevenue = revenueData.reduce((a,b)=>a+b,0);
+    const totalUsers = usersData.reduce((a,b)=>a+b,0);
+    const totalRemaining = remainingData.reduce((a,b)=>a+b,0);
+
+    const maxRevenue = Math.max(...revenueData);
+    const minRevenue = Math.min(...revenueData);
+    const maxMonth = months[revenueData.indexOf(maxRevenue)];
+    const minMonth = months[revenueData.indexOf(minRevenue)];
+
+    // Build HTML
+    area.innerHTML = `
+        <h1>📊 Analytics</h1>
+        <div class="card" style="margin-bottom:20px;">
+            <h3>Summary</h3>
+            <p><b>Total Revenue:</b> ₹${totalRevenue}</p>
+            <p><b>Total Users:</b> ${totalUsers}</p>
+            <p><b>Total Remaining Amount:</b> ₹${totalRemaining}</p>
+            <p><b>Highest Revenue:</b> ₹${maxRevenue} (${maxMonth})</p>
+            <p><b>Lowest Revenue:</b> ₹${minRevenue} (${minMonth})</p>
+        </div>
+        <canvas id="analytics-chart" style="height:400px;"></canvas>
+    `;
+
+    const ctx = document.getElementById("analytics-chart").getContext("2d");
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: months,
+            datasets: [
+                {
+                    type: 'bar',
+                    label: 'Revenue',
+                    data: revenueData,
+                    backgroundColor: 'rgba(25,118,210,0.7)'
+                },
+                {
+                    type: 'bar',
+                    label: 'Users',
+                    data: usersData,
+                    backgroundColor: 'rgba(255,165,0,0.7)'
+                },
+                {
+                    type: 'line',
+                    label: 'Remaining Amount',
+                    data: remainingData,
+                    borderColor: 'rgba(220,53,69,1)',
+                    backgroundColor: 'rgba(220,53,69,0.2)',
+                    yAxisID: 'y1',
+                    tension: 0.3,
+                    fill: true,
+                    pointRadius: 5
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            stacked: false,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ": ₹" + context.raw;
+                        }
+                    }
+                },
+                legend: {
+                    position: 'top'
+                }
+            },
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: { display:true, text:'Revenue / Users' }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: { display:true, text:'Remaining Amount' },
+                    grid: { drawOnChartArea: false }
+                }
+            }
+        }
+    });
+}
+
+
+
+/* --- REMINDERS --- */
+function loadReminders(){
+    const reminders=JSON.parse(localStorage.getItem("reminders")||"[]");
+    const list=document.getElementById("reminder-list");
+    if(!list) return;
+    list.innerHTML="";
+    reminders.forEach((r,i)=>{
+        list.innerHTML+=`<li>${r.date}: ${r.text} <button onclick="deleteReminder(${i})">❌</button></li>`;
+    });
+}
+
+function addReminder(){
+    const text=document.getElementById("reminder-text").value.trim();
+    const date=document.getElementById("reminder-date").value;
+    if(!text||!date){ alert("Fill both fields!"); return; }
+    const reminders=JSON.parse(localStorage.getItem("reminders")||"[]");
+    reminders.push({text,date});
+    localStorage.setItem("reminders",JSON.stringify(reminders));
+    document.getElementById("reminder-text").value="";
+    document.getElementById("reminder-date").value="";
+    loadReminders();
+    showNotification("Reminder added!");
+}
+
+function deleteReminder(i){
+    const reminders=JSON.parse(localStorage.getItem("reminders")||"[]");
+    reminders.splice(i,1);
+    localStorage.setItem("reminders",JSON.stringify(reminders));
+    loadReminders();
+}
+
+/* --- SETTINGS --- */
+function changeTheme(mode){
+    if(mode==="dark"){ document.body.style.background="#1c1c1c"; document.body.style.color="#fff"; }
+    else { document.body.style.background="#f4f6f9"; document.body.style.color="#333"; }
+    localStorage.setItem("theme",mode);
+}
+
+function changePassword(){
+    const curr=document.getElementById("current-pass").value;
+    const newp=document.getElementById("new-pass").value;
+    const stored=localStorage.getItem("adminPass")||"Apple@1234";
+    if(curr!==stored){ alert("Current password incorrect!"); return; }
+    localStorage.setItem("adminPass",newp);
+    alert("Password updated successfully!");
+}
+
+function resetReports(){
+    if(confirm("Delete all reports?")){ localStorage.removeItem("reports"); showNotification("All reports deleted!"); }
+}
+
+/* --- FILE UPLOAD --- */
+function uploadFile(){
+    const f=document.getElementById("file-upload").files[0];
+    if(!f){ alert("Select file!"); return; }
+    alert(`File '${f.name}' uploaded successfully!`);
+}
+</script>
+<div id="signature">By : S&gt;Toufiq</div>
+
+</body>
+</html>
